@@ -55,7 +55,7 @@ class Controller(object):
 
         feedfoward_steering = self.yaw_controller.get_steering(linear_vel, angular_vel, current_vel)
         feedback_steering = self.steering_pid.step(cte, duration_in_seconds)
-        steering = feedfoward_steering + feedback_steering
+        steering = feedback_steering
 
         vel_error = linear_vel - current_vel
         self.last_vel = current_vel
