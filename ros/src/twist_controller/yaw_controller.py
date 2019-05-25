@@ -15,19 +15,11 @@ class YawController(object):
         angle = atan(self.wheel_base / radius) * self.steer_ratio
         return max(self.min_angle, min(self.max_angle, angle))
 
-    def get_steering(self, linear_velocity, angular_velocity, current_velocity, current_angular_velocity):
+    def get_steering(self, linear_velocity, angular_velocity, current_velocity):
         angular_velocity = current_velocity * angular_velocity / linear_velocity if abs(linear_velocity) > 0. else 0.
 
         if abs(current_velocity) > 0.1:
             max_yaw_rate = abs(self.max_lat_accel / current_velocity);
             angular_velocity = max(-max_yaw_rate, min(max_yaw_rate, angular_velocity))
 
-        if abs(angular_velocity) > 0.0:
-            angle = self.get_angle(max(current_velocity, self.min_speed) / angular_velocity)
-            # if there is a difference between target angular velocity and current angular velocity, add dampening to steering angle
-            if abs(angular_velocity - current_angular_velocity) > 0.0: 
-                angle = angle * 0.1  + max(self.min_angle, min(self.max_angle, 0.05*(angular_velocity - current_angular_velocity)))
-        else: 
-            angle = 0.0
-
-        return angle
+        return self.get_angle(max(current_velocity, self.min_speed) / angular_velocity) if abs(angular_velocity) > 0. else 0.0;

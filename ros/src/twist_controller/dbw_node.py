@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 
+import cte_calculator
+from geometry_msgs.msg import PoseStamped
 import rospy
 from std_msgs.msg import Bool
+from styx_msgs.msg import Lane
 from dbw_mkz_msgs.msg import ThrottleCmd, SteeringCmd, BrakeCmd, SteeringReport
 from geometry_msgs.msg import TwistStamped
 import math
@@ -69,12 +72,17 @@ class DBWNode(object):
         rospy.Subscriber('/vehicle/dbw_enabled', Bool, self.dbw_enabled_cb)
         rospy.Subscriber('/twist_cmd', TwistStamped, self.twist_cb)
         rospy.Subscriber('/current_velocity', TwistStamped, self.velocity_cb)
+        rospy.Subscriber('final_waypoints', Lane, self.final_waypoints_cb, queue_size=1)
+        rospy.Subscriber('/current_pose', PoseStamped, self.current_pose_cb, queue_size=1)
 
         self.current_vel = None
-        self.curr_ang_vel = None
+        #self.curr_ang_vel = None
         self.dbw_enabled = None
         self.linear_vel = None
         self.angular_vel = None
+        self.final_waypoints = None
+        self.current_pose = None
+        self.previous_loop_time = rospy.get_rostime()
         self.throttle = self.steering = self.brake = 0
 
         self.loop()
@@ -84,8 +92,15 @@ class DBWNode(object):
         while not rospy.is_shutdown():
             # TODO: Get predicted throttle, brake, and steering using `twist_controller`
             # You should only publish the control commands if dbw is enabled
-            if not None in (self.current_vel, self.linear_vel, self.angular_vel):
-                self.throttle, self.brake, self.steering = self.controller.control(self.current_vel, self.curr_ang_vel, self.dbw_enabled, self.linear_vel, self.angular_vel)
+            if not None in (self.current_vel, self.linear_vel, self.angular_vel, self.final_waypoints):
+                current_time = rospy.get_rostime()
+                ros_duration = current_time - self.previous_loop_time
+                duration_in_seconds = ros_duration.secs + (1e-9 * ros_duration.nsecs)
+                self.previous_loop_time = current_time
+                
+                cross_track_error = cte_calculator.get_cross_track_error(self.final_waypoints, self.current_pose)
+                
+                self.throttle, self.brake, self.steering = self.controller.control(self.current_vel, cross_track_error, self.dbw_enabled, self.linear_vel, self.angular_vel, duration_in_seconds)
 
             if self.dbw_enabled:
                 self.publish(self.throttle, self.brake, self.steering)
@@ -100,7 +115,13 @@ class DBWNode(object):
 
     def velocity_cb(self, msg):
         self.current_vel = msg.twist.linear.x
-        self.curr_ang_vel = msg.twist.angular.z
+        #self.curr_ang_vel = msg.twist.angular.z
+        
+    def final_waypoints_cb(self, msg):
+        self.final_waypoints = msg.waypoints
+        
+    def current_pose_cb(self, msg):
+        self.current_pose = msg
 
     def publish(self, throttle, brake, steer):
         tcmd = ThrottleCmd()

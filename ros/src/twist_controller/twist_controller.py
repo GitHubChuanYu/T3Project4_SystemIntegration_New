@@ -2,6 +2,7 @@ from pid import PID
 from lowpass import LowPassFilter
 from yaw_controller import YawController
 import rospy
+import math
 
 GAS_DENSITY = 2.858
 ONE_MPH = 0.44704
@@ -20,6 +21,7 @@ class Controller(object):
         mn = 0. # Mininum throttle value
         mx = 0.2 # Maximum throttle value
         self.throttle_controller = PID(kp, ki, kd, mn, mx)
+        self.steering_pid = PID(kp=0.15, ki=0.001, kd=0.1, mn=-max_steer_angle, mx=max_steer_angle) 
 
         tau = 0.5 # 1/(2pi*tau) = cutoff frequency
         ts = .02 # Sample time
@@ -34,16 +36,16 @@ class Controller(object):
 
         self.last_time = rospy.get_time()       
 
-    def control(self, current_vel, curr_ang_vel, dbw_enabled, linear_vel, angular_vel):
+    def control(self, current_vel, cte, dbw_enabled, linear_vel, angular_vel, duration_in_seconds):
         # TODO: Change the arg, kwarg list to suit your needs
         # Return throttle, brake, steer
 
         if not dbw_enabled:
             self.throttle_controller.reset()
+            self.steering_pid.reset()
             return 0., 0., 0.
 
         current_vel = self.vel_lpf.filt(current_vel)
-        curr_ang_vel = self.vel_lpf.filt(curr_ang_vel)
 
         # rospy.logwarn("Angular vel: {0}".format(angular_vel))
         # rospy.logwarn("Target velocity: {0}".format(linear_vel))
@@ -51,7 +53,9 @@ class Controller(object):
         # rospy.logwarn("Current velocity: {0}".format(current_vel))
         # rospy.logwarn("Filtered velocity: {0}".format(self.vel_lpf.get()))
 
-        steering = self.yaw_controller.get_steering(linear_vel, angular_vel, current_vel, curr_ang_vel)
+        feedfoward_steering = self.yaw_controller.get_steering(linear_vel, angular_vel, current_vel)
+        feedback_steering = self.steering_pid.step(cte, duration_in_seconds)
+        steering = feedfoward_steering + feedback_steering
 
         vel_error = linear_vel - current_vel
         self.last_vel = current_vel
