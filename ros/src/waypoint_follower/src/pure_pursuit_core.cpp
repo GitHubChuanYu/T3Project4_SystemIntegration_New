@@ -241,12 +241,12 @@ bool PurePursuit::verifyFollowing() const
   if (displacement < displacement_threshold_ && relative_angle < relative_angle_threshold_)
   {
     // ROS_INFO("Following : True");
-      return true;
+    return true;
   }
   else
   {
     // ROS_INFO("Following : False");
-      return false;
+    return false;
   }
 }
 geometry_msgs::Twist PurePursuit::calcTwist(double curvature, double cmd_velocity) const
@@ -267,7 +267,7 @@ geometry_msgs::Twist PurePursuit::calcTwist(double curvature, double cmd_velocit
     twist.angular.z = prev_angular_velocity;
   }
 
-  //prev_angular_velocity = twist.angular.z;
+  prev_angular_velocity = twist.angular.z;
   return twist;
 }
 
