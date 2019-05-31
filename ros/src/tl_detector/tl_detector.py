@@ -7,8 +7,9 @@ from styx_msgs.msg import Lane
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 from light_classification.tl_classifier import TLClassifier
+
 import tf
-import cv2
+import math
 import yaml
 from scipy.spatial import KDTree
 import numpy as np
@@ -59,7 +60,7 @@ class TLDetector(object):
         stop_line_positions = self.config['stop_line_positions']
 
         for index, stop_line in enumerate(stop_line_positions):
-            stop_line_wp = self.get_closest_waypoint(stop_line)
+            stop_line_wp = self.get_closest_waypoint(stop_line[0],stop_line[1])
             self.stop_line_cache.append((index, stop_line, stop_line_wp))
 
         rospy.spin()
@@ -107,7 +108,7 @@ class TLDetector(object):
             self.upcoming_red_light_pub.publish(Int32(self.last_wp))
         self.state_count += 1
 
-    def get_closest_waypoint(self, pose):
+    def get_closest_waypoint(self, x, y):
         """Identifies the closest path waypoint to the given position
             https://en.wikipedia.org/wiki/Closest_pair_of_points_problem
         Args:
@@ -118,8 +119,6 @@ class TLDetector(object):
 
         """
         #TODO implement
-        x = self.pose.pose.position.x
-        y = self.pose.pose.position.y
         closest_idx = self.waypoint_tree.query([x, y], 1)[1]
 
         # Check if closest is ahead or behind vehicle
@@ -168,7 +167,7 @@ class TLDetector(object):
             int: ID of traffic light color (specified in styx_msgs/TrafficLight)
 
         """
-        line_wp_idx = None
+        light_wp_idx = None
 
         # List of positions that correspond to the line to stop in front of for a given intersection
         if(self.pose):
@@ -187,7 +186,7 @@ class TLDetector(object):
                         
         if light_wp_idx is not None:
             state = self.get_light_state()
-            return line_wp_idx, state
+            return light_wp_idx, state
 
         return -1, TrafficLight.UNKNOWN
 
