@@ -1,5 +1,25 @@
 This is Chuan's final project of the Udacity Self-Driving Car Nanodegree: Programming a Real Self-Driving Car. For more information about the project, see the project introduction [here](https://classroom.udacity.com/nanodegrees/nd013/parts/6047fe34-d93c-4f50-8336-b70ef10cb4b2/modules/e1a23b06-329a-4684-a717-ad476f0d8dff/lessons/462c933d-9f24-42d3-8bdc-a08a5fc866e4/concepts/5ab4b122-83e6-436d-850f-9f4d26627fd9).
 
+### Due to limited time, I am late for finishing the capstone project on time with other team members, so I am submitting this project alone.
+
+As mentioned in the final project walkthroughs, I finished this project in 3 parts:
+
+## Waypoint Updater
+
+Waypoint updater node contains two parts. The first part is to derive a fixed number (30) of waypoints ahead of car from overall waypoints without consideration of traffic lights. Firstly, I use two callback functions "pose_cb" and "waypoints_cb" to get current car position and overall waypoints from two topics "/current_pose" and "/base_waypoints". Then a function called **get_closest_waypoint_idx** is created to get the closest waypoint ahead of car. At last, from that closest waypoint, I add additional 30 points from it to generate the final waypoints for car to follow. 
+
+The second part of waypoint updater is to incorporate traffic light stopping. First, from topic "/traffic_waypoints" I get the stop line waypoint. Based this stop line waypoint, I designed a function called "decelerate_waypoints" to slow down the car to stop at red light. This is mainly done through modifying the velocity of those final waypoints.
+
+## DBW
+
+Driver by wire node (dbw_node.py) contains mainly a twist controller (twist_controller.py) to control vehicle speed to follow target vehicle speed from final waypoints via a PID controller, and also to control vehicle steering angle to follow target vehicle yaw rate/yaw angle/lateral position via a combined feedforward steering controller and feedback PID steering controller. The feedback steering PID controller is using cross track error as input as shown in (cte_calculator.py).
+
+## Traffic light detection
+
+Traffic light detection node is used to generate the traffic light waypoints which are sent to waypoints updater node. First, I need to get all the necessary inputs from subscribing necessary topics such as "/current_pose", "/base_waypoints", "/image_color" to know the information about current vehicle position, overall track waypoints, and the traffic light image data from camera. After that, these information are used to calculate the closest points to the red traffic light. This is realized in a designed function of process_traffic_lights. This function calculates the waypoints closest to the upcoming stop line position, and also use the traffic light classifier to classify the detected camera image as one of these states: 0-RED, 1-YELLOW, 2-GREEN, 4:UNKOWN. The returned values of stop line waypoint combined with traffic light state are used to decide final stop line waypoint with some hysterisis characterics to make the dectection more stable.
+
+The traffic light classifier is based on a CNN model for light detection on the simulator. 
+
 Please use **one** of the two installation options, either native **or** docker installation.
 
 ### Native Installation
@@ -72,19 +92,3 @@ cd CarND-Capstone/ros
 roslaunch launch/site.launch
 ```
 5. Confirm that traffic light detection works on real life images
-
-### Other library/driver information
-Outside of `requirements.txt`, here is information on other driver/library versions used in the simulator and Carla:
-
-Specific to these libraries, the simulator grader and Carla use the following:
-
-|        | Simulator | Carla  |
-| :-----------: |:-------------:| :-----:|
-| Nvidia driver | 384.130 | 384.130 |
-| CUDA | 8.0.61 | 8.0.61 |
-| cuDNN | 6.0.21 | 6.0.21 |
-| TensorRT | N/A | N/A |
-| OpenCV | 3.2.0-dev | 2.4.8 |
-| OpenMP | N/A | N/A |
-
-We are working on a fix to line up the OpenCV versions between the two.
