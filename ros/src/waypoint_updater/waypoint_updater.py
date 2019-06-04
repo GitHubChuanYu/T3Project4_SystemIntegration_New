@@ -106,22 +106,19 @@ class WaypointUpdater(object):
         return lane
         
     def decelerate_waypoints(self, waypoints, closest_idx):
-        temp = []
-        for i, wp in enumerate(waypoints):
-         
-            p = Waypoint()
-            p.pose = wp.pose
-            
-            stop_idx = max(self.stopline_wp_idx - closest_idx - 2, 0) # Two waypoints back from line so front of car stops at line 2 points in front of the traffic light line
-            dist = self.distance(waypoints, i, stop_idx)
+        
+        last_idx = self.stopline_wp_idx - closest_idx - 3
+        last = waypoints[last_idx]
+        last.twist.twist.linear.x = 0.
+        for wp in waypoints[:last_idx][::-1]:
+            dist = self.straight_dist(
+                wp.pose.pose.position, last.pose.pose.position)
             vel = math.sqrt(2 * MAX_DECEL * dist)
             if vel < 1.:
                 vel = 0.
-                
-            p.twist.twist.linear.x = min(vel, wp.twist.twist.linear.x)
-            temp.append(p)
-            
-        return temp
+            self.set_waypoint_velocity(
+                wp, min(vel, self.get_waypoint_velocity(wp)))
+        return waypoints
 
     def pose_cb(self, msg):
         # TODO: Implement
