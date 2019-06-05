@@ -144,6 +144,9 @@ class WaypointUpdater(object):
 
     def set_waypoint_velocity(self, waypoints, waypoint, velocity):
         waypoints[waypoint].twist.twist.linear.x = velocity
+        
+    def straight_dist(self, pos0, pos1):
+        return math.sqrt((pos0.x - pos1.x) ** 2 + (pos0.y - pos1.y) ** 2)
 
     def distance(self, waypoints, wp1, wp2):
         dist = 0
