@@ -40,15 +40,15 @@ class WaypointUpdater(object):
         self.waypoints_2d = None
         self.waypoint_tree = None
 
-        rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
-        rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
+        rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb, queue_size=1)
+        rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb, queue_size=1)
         rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)
 
         # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
 
         self.final_waypoints_pub = rospy.Publisher('final_waypoints', Lane, queue_size=1)
 
-        self.spin()
+        rospy.spin()
 
     def get_closest_waypoint_idx(self):
         x = self.pose.pose.position.x
@@ -73,12 +73,12 @@ class WaypointUpdater(object):
     def pose_cb(self, msg):
         # TODO: Implement
         self.pose = msg
-        closest_idx = get_closest_waypoint_idx()
+        closest_idx = self.get_closest_waypoint_idx()
         farthest_idx = closest_idx + LOOKAHEAD_WPS
         waypoints = deepcopy(self.base_lane[
             closest_idx:closest_idx+LOOKAHEAD_WPS
         ])
-        if self.stopline_wp_idx != -1 && self.stopline_wp_idx < farthest_idx:
+        if self.stopline_wp_idx != -1 and self.stopline_wp_idx < farthest_idx:
             waypoints = self.decelerate_waypoints(waypoints, closest_idx)
 
         final_waypoints_msg = Lane()
