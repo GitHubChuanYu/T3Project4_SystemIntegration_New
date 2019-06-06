@@ -48,7 +48,7 @@ class WaypointUpdater(object):
     def closest_waypoint(self, curr_pose):
         closest_distance = float('inf')
         closest_idx = -1
-        for idx, waypoint in enumerate(self.base_waypoints):
+        for idx, waypoint in enumerate(self.base_lane):
             distance = self.straight_dist(
                 waypoint.pose.pose.position,
                 curr_pose.pose.position)
@@ -57,8 +57,8 @@ class WaypointUpdater(object):
                 closest_distance = distance
         curr_yaw = self.compute_yaw(curr_pose.pose.orientation)
 
-        map_x = self.base_waypoints[closest_idx].pose.pose.position.x
-        map_y = self.base_waypoints[closest_idx].pose.pose.position.y
+        map_x = self.base_lane[closest_idx].pose.pose.position.x
+        map_y = self.base_lane[closest_idx].pose.pose.position.y
         heading = math.atan2(
             (map_y - curr_pose.pose.position.y),
             (map_x - curr_pose.pose.position.x)
@@ -117,7 +117,11 @@ class WaypointUpdater(object):
 
     def traffic_cb(self, msg):
         # TODO: Callback for /traffic_waypoint message. Implement
-        self.stopline_wp_idx = msg.data
+        stopline_wp_idx = msg.data
+        if stopline_wp_idx == -1:
+            self.stopline_wp_idx = -1
+        else:
+            self.stopline_wp_idx = stopline_wp_idx
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
